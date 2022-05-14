@@ -18,7 +18,6 @@ class Graph:
             self.node_labels = []
         except IndexError:
             pass
-
         self.graph = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
         self.__build_graph()
 

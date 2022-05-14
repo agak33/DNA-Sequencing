@@ -2,4 +2,4 @@
 from antColony import AntColony
 
 if __name__ == '__main__':
-    AntColony('testInstances/custom/test1.txt').solve()
+    print(*AntColony('testInstances/randomNegativeErr/9.200-80.txt').solve(), sep='\n')
