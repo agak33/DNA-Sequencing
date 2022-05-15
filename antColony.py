@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 
 from graph import Graph
@@ -14,7 +16,7 @@ class AntColony(Graph):
         super().__init__(file_path)
         self._best_path: list[int] = []
         self._best_solution: str = ''
-
+        self._find_length = int(file_path.replace('-', '.').replace('+', '.').split('.')[1])
         self._pheromones = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
 
     def __convert_to_str(self, nodes: list[int]) -> str:
@@ -35,7 +37,7 @@ class AntColony(Graph):
         """Returns next node index, based on probability"""
         available_nodes: list[int] = [
             index for index in range(len(self.graph[curr_node]))
-            if self.graph[curr_node, index] > 0 and not visited_nodes[index]
+            if 0 < self.graph[curr_node, index] < 9 and not visited_nodes[index]
         ]
         if not available_nodes:
             return None
@@ -56,6 +58,7 @@ class AntColony(Graph):
         if not self.graph[curr_node, next_node]:
             return 0
         try:
+
             return (self._pheromones[curr_node, next_node] ** const.ALPHA
                     * self.graph[curr_node, next_node] ** const.BETA
                     ) / (sum(
@@ -84,7 +87,6 @@ class AntColony(Graph):
         """Runs single algorithm iteration"""
         temp_pheromones: np.ndarray = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
         visited: np.ndarray = np.zeros(shape=(len(self.node_labels),))
-
         for ant in range(const.COLONY_SIZE):
             curr_node: int = self.__get_random_start_node()
             visited[curr_node] = 1
@@ -108,7 +110,10 @@ class AntColony(Graph):
         :return: best founded DNA sequence and performance time
         """
         start: float = time()
+        gen = 1
         for generation in range(const.GENERATIONS):
+            print("generation ", gen)
+            gen += 1
             self.__perform_generation()
         end: float = time()
-        return self._best_path, self._best_solution, len(self._best_solution), end - start, self.node_labels
+        return self._best_path, len(self._best_path), self._best_solution, len(self._best_solution), end - start, self.node_labels
