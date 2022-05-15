@@ -16,7 +16,7 @@ class AntColony(Graph):
         super().__init__(file_path)
         self._best_path: list[int] = []
         self._best_solution: str = ''
-        self._find_length = int(file_path.replace('-', '.').replace('+', '.').split('.')[1])
+        self._max_length = int(file_path.replace('-', '.').replace('+', '.').split('.')[1])
         self._pheromones = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
 
     def __convert_to_str(self, nodes: list[int]) -> str:
@@ -37,7 +37,7 @@ class AntColony(Graph):
         """Returns next node index, based on probability"""
         available_nodes: list[int] = [
             index for index in range(len(self.graph[curr_node]))
-            if 0 < self.graph[curr_node, index] < 9 and not visited_nodes[index]
+            if 0 < self.graph[curr_node, index] < 8 and not visited_nodes[index]
         ]
         if not available_nodes:
             return None
@@ -79,7 +79,7 @@ class AntColony(Graph):
     def __fitness(self, v: list[int]) -> None:
         """Calculates fitness"""
         s: str = self.__convert_to_str(v)
-        if len(s) > len(self._best_solution):
+        if len(v) > len(self._best_path):
             self._best_path = v
             self._best_solution = s
 
@@ -99,6 +99,7 @@ class AntColony(Graph):
                 visited[curr_node] = 1
                 temp_pheromones[solution[-1], curr_node] += 1
                 solution.append(curr_node)
+
 
             self.__fitness(solution)
             visited.fill(0)
