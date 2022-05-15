@@ -30,14 +30,13 @@ class Graph:
                 self.graph[node_index][target_index] = self.__get_cost_between(
                     self.node_labels[node_index], self.node_labels[target_index]
                 ) if node_index != target_index else 0
-        print(self.graph)
 
     @staticmethod
     def __get_cost_between(node_1: str, node_2: str) -> int:
         """
         Calculates cost between two nodes, based on their labels.
         """
-        for i in range(1, len(node_1)):
+        for i in range(1, len(node_1) - 1):
             if node_1[i:] == node_2[:-i]:
                 return i
         return 0

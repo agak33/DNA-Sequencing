@@ -2,20 +2,21 @@ import random
 
 from graph import Graph
 import constant as const
-from random import randint
-from typing import Any
 import numpy as np
-from ant import Ant
 from time import time
 
 
 class AntColony(Graph):
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str, max_len: int) -> None:
         super().__init__(file_path)
         self._best_path: list[int] = []
         self._best_solution: str = ''
 
-        self._pheromones = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
+        self._max_length = max_len
+        self._pheromones = np.ones(shape=(len(self.node_labels), len(self.node_labels)))
+
+        self.__probability_sums: list[float] = []
+        self.__probabilities: np.ndarray = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
 
     def __convert_to_str(self, nodes: list[int]) -> str:
         """Converts node list to string"""
@@ -31,7 +32,7 @@ class AntColony(Graph):
 
     def __get_next_node(self,
                         curr_node: int,
-                        visited_nodes: np.ndarray) -> int | None | Any:
+                        visited_nodes: np.ndarray) -> int | None:
         """Returns next node index, based on probability"""
         available_nodes: list[int] = [
             index for index in range(len(self.graph[curr_node]))
@@ -41,30 +42,30 @@ class AntColony(Graph):
             return None
         return available_nodes[
             np.argmax([
-                self.__get_probability(curr_node, next_node) for next_node in available_nodes
+                self.__probabilities[curr_node, next_node] for next_node in available_nodes
             ])
         ]
 
-    def __get_probability(self,
-                          curr_node: int,
-                          next_node: int) -> float:
-        """
-        Calculates probability of choosing edge curr_node -> next_node
-        :param curr_node: current node index
-        :param next_node: next node index
-        """
-        if not self.graph[curr_node, next_node]:
-            return 0
-        try:
-            return (self._pheromones[curr_node, next_node] ** const.ALPHA
-                    * self.graph[curr_node, next_node] ** const.BETA
-                    ) / (sum(
-                        [
-                            self._pheromones[curr_node, z] ** const.ALPHA * self.graph[curr_node, z] ** const.BETA
-                            for z in range(len(self.graph[curr_node])) if self.graph[curr_node, z] > 0
-                        ]))
-        except ZeroDivisionError:
-            return 0
+    def __calculate_probabilities(self) -> None:
+        """Calculates probability of choosing certain edge for all edges"""
+        self.__probability_sums = [
+            sum(
+                [
+                    self._pheromones[node_index, z] ** const.ALPHA
+                    * (self.word_len - self.graph[node_index, z]) ** const.BETA
+                    for z in range(len(self.graph[node_index])) if self.graph[node_index, z] > 0
+                ]
+            )
+            for node_index in range(len(self.graph))
+        ]
+        for i in range(len(self.__probabilities)):
+            for j in range(len(self.__probabilities[i])):
+                try:
+                    self.__probabilities[i, j] = (self._pheromones[i, j] ** const.ALPHA
+                                                  * (self.word_len - self.graph[i, j]) ** const.BETA
+                                                  ) / self.__probability_sums[i]
+                except ZeroDivisionError:
+                    self.__probabilities[i, j] = 0
 
     def __update_pheromones(self, temp_pheromones: np.ndarray) -> None:
         """Updates pheromones"""
@@ -75,24 +76,26 @@ class AntColony(Graph):
 
     def __fitness(self, v: list[int]) -> None:
         """Calculates fitness"""
-        s: str = self.__convert_to_str(v)
-        if len(s) > len(self._best_solution):
+        if len(v) > len(self._best_path):
             self._best_path = v
-            self._best_solution = s
+            self._best_solution = self.__convert_to_str(v)
 
     def __perform_generation(self) -> None:
         """Runs single algorithm iteration"""
         temp_pheromones: np.ndarray = np.zeros(shape=(len(self.node_labels), len(self.node_labels)))
         visited: np.ndarray = np.zeros(shape=(len(self.node_labels),))
+        self.__calculate_probabilities()
 
         for ant in range(const.COLONY_SIZE):
             curr_node: int = self.__get_random_start_node()
             visited[curr_node] = 1
             solution: list[int] = [curr_node]
+            curr_cost: int = len(self.node_labels[curr_node])
 
             while True:
                 curr_node = self.__get_next_node(curr_node, visited)
-                if curr_node is None:
+                curr_cost += self.graph[solution[-1], curr_node]
+                if curr_node is None or curr_cost > self._max_length:
                     break
                 visited[curr_node] = 1
                 temp_pheromones[solution[-1], curr_node] += 1
@@ -111,4 +114,8 @@ class AntColony(Graph):
         for generation in range(const.GENERATIONS):
             self.__perform_generation()
         end: float = time()
-        return self._best_path, self._best_solution, len(self._best_solution), end - start, self.node_labels
+        return self._best_path, \
+               f'{len(self._best_path)} / {len(self.node_labels)}', \
+               self._best_solution, \
+               len(self._best_solution), \
+               end - start
