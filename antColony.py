@@ -78,8 +78,8 @@ class AntColony(Graph):
 
     def __fitness(self, v: list[int]) -> None:
         """Calculates fitness"""
-        s: str = self.__convert_to_str(v)
         if len(v) > len(self._best_path):
+            s: str = self.__convert_to_str(v)
             self._best_path = v
             self._best_solution = s
 
