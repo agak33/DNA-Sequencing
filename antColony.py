@@ -30,6 +30,20 @@ class AntColony(Graph):
         """Draws and returns random start node for ant"""
         return random.randrange(0, len(self.node_labels))
 
+    def __get_list_max_probability(self, curr_node: int, available_nodes: list[int]) -> list[int]:
+        """Finds max probability of choosing edge curr_node -> available_node,
+        returns all available nodes with this value"""
+        nodes: list[int] = []
+        max_prob: float = 0
+
+        for next_node in available_nodes:
+            if self.__probabilities[curr_node, next_node] > max_prob:
+                max_prob = self.__probabilities[curr_node, next_node]
+                nodes = [next_node]
+            elif self.__probabilities[curr_node, next_node] == max_prob:
+                nodes.append(next_node)
+        return nodes
+
     def __get_next_node(self,
                         curr_node: int,
                         visited_nodes: np.ndarray) -> int | None:
@@ -40,11 +54,7 @@ class AntColony(Graph):
         ]
         if not available_nodes:
             return None
-        return available_nodes[
-            np.argmax([
-                self.__probabilities[curr_node, next_node] for next_node in available_nodes
-            ])
-        ]
+        return random.choice(self.__get_list_max_probability(curr_node, available_nodes))
 
     def __calculate_probabilities(self) -> None:
         """Calculates probability of choosing certain edge for all edges"""
@@ -60,12 +70,10 @@ class AntColony(Graph):
         ]
         for i in range(len(self.__probabilities)):
             for j in range(len(self.__probabilities[i])):
-                try:
-                    self.__probabilities[i, j] = (self._pheromones[i, j] ** const.ALPHA
-                                                  * (self.word_len - self.graph[i, j]) ** const.BETA
-                                                  ) / self.__probability_sums[i]
-                except ZeroDivisionError:
-                    self.__probabilities[i, j] = 0
+                self.__probabilities[i, j] = 0 if not self.__probability_sums[i] else \
+                    (self._pheromones[i, j] ** const.ALPHA
+                     * (self.word_len - self.graph[i, j]) ** const.BETA
+                     ) / self.__probability_sums[i]
 
     def __update_pheromones(self, temp_pheromones: np.ndarray) -> None:
         """Updates pheromones"""
